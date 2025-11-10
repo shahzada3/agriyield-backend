@@ -3,6 +3,19 @@ from fastapi.middleware.cors import CORSMiddleware
 import numpy as np, json, os
 app = FastAPI(title="AgriYield Real ML API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+@app.get("/")
+def home():
+    """
+    Root route for AgriYield Backend
+    Shows a friendly status message when opened in a browser.
+    """
+    return {
+        "message": "🌾 AgriYield Backend is Running Successfully!",
+        "status": "online",
+        "docs": "https://agriyield-backend.onrender.com/docs",
+        "health": "https://agriyield-backend.onrender.com/health"
+    }
+
 
 # Import user notebook modules
 from yield_module import *  # noqa
