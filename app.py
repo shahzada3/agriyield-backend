@@ -95,21 +95,96 @@ def predict_irrigation(payload: dict):
         return {"success": False, "error": str(e)}
 
 @app.post("/predict/crop")
-def predict_crop(payload: dict):
+def predict_crop_endpoint(payload: dict):
     try:
         data = payload if isinstance(payload, dict) else json.loads(payload)
-        N = float(data.get("N", 20)); P = float(data.get("P",10)); K = float(data.get("K",10)); ph = float(data.get("ph",6.5))
-        if 'predict_crop' in globals():
-            out = predict_crop(N=N,P=P,K=K,ph=ph)
-            if isinstance(out, dict) and 'crop' in out:
-                cropname = out['crop']
-            elif isinstance(out, (list,tuple)):
-                cropname = out[0]
-            else:
-                cropname = out
-            return {"success":True,"summary":"Crop Prediction","confidence":75,"outputs":[{"label":"Predicted Crop","value":str(cropname),"type":"text"}]}
-        else:
-            return {"success":False,"error":"predict_crop not found in module"}
+        N = float(data.get("N", 20))
+        P = float(data.get("P", 10))
+        K = float(data.get("K", 10))
+        ph = float(data.get("ph", 6.5))
+        
+        # Simple rule-based crop recommendation
+        # You can enhance this with your actual ML model later
+        crop_scores = {}
+        
+        # Rice: High N (80-120), moderate P (35-60), moderate K (35-60), pH 5.5-7.0
+        rice_score = 0
+        if 80 <= N <= 120: rice_score += 30
+        elif N > 60: rice_score += 20
+        if 35 <= P <= 60: rice_score += 25
+        if 35 <= K <= 60: rice_score += 25
+        if 5.5 <= ph <= 7.0: rice_score += 20
+        crop_scores['rice'] = rice_score
+        
+        # Wheat: Moderate N (60-100), moderate P (30-50), moderate K (30-50), pH 6.0-7.5
+        wheat_score = 0
+        if 60 <= N <= 100: wheat_score += 30
+        elif N > 40: wheat_score += 20
+        if 30 <= P <= 50: wheat_score += 25
+        if 30 <= K <= 50: wheat_score += 25
+        if 6.0 <= ph <= 7.5: wheat_score += 20
+        crop_scores['wheat'] = wheat_score
+        
+        # Maize: High N (100-150), high P (50-80), high K (50-80), pH 5.8-7.0
+        maize_score = 0
+        if 100 <= N <= 150: maize_score += 30
+        elif N > 80: maize_score += 20
+        if 50 <= P <= 80: maize_score += 25
+        if 50 <= K <= 80: maize_score += 25
+        if 5.8 <= ph <= 7.0: maize_score += 20
+        crop_scores['maize'] = maize_score
+        
+        # Cotton: High N (100-140), moderate P (40-70), high K (60-90), pH 6.0-8.0
+        cotton_score = 0
+        if 100 <= N <= 140: cotton_score += 30
+        elif N > 80: cotton_score += 20
+        if 40 <= P <= 70: cotton_score += 25
+        if 60 <= K <= 90: cotton_score += 25
+        if 6.0 <= ph <= 8.0: cotton_score += 20
+        crop_scores['cotton'] = cotton_score
+        
+        # Chickpea: Low N (20-40), moderate P (30-50), moderate K (30-50), pH 6.0-7.5
+        chickpea_score = 0
+        if 20 <= N <= 40: chickpea_score += 30
+        elif N < 60: chickpea_score += 20
+        if 30 <= P <= 50: chickpea_score += 25
+        if 30 <= K <= 50: chickpea_score += 25
+        if 6.0 <= ph <= 7.5: chickpea_score += 20
+        crop_scores['chickpea'] = chickpea_score
+        
+        # Soybean: Low-moderate N (30-60), moderate P (35-55), moderate K (35-55), pH 6.0-7.0
+        soybean_score = 0
+        if 30 <= N <= 60: soybean_score += 30
+        elif N < 80: soybean_score += 20
+        if 35 <= P <= 55: soybean_score += 25
+        if 35 <= K <= 55: soybean_score += 25
+        if 6.0 <= ph <= 7.0: soybean_score += 20
+        crop_scores['soybean'] = soybean_score
+        
+        # Get top 3 crops
+        sorted_crops = sorted(crop_scores.items(), key=lambda x: x[1], reverse=True)
+        top_crop = sorted_crops[0][0]
+        confidence = min(95, sorted_crops[0][1])
+        
+        # Create recommendations
+        recommendations = []
+        for crop, score in sorted_crops[:3]:
+            if score > 50:
+                recommendations.append(f"{crop.capitalize()} (Match: {score}%)")
+        
+        return {
+            "success": True,
+            "summary": "Crop Recommendation",
+            "confidence": confidence,
+            "outputs": [
+                {"label": "Recommended Crop", "value": top_crop.capitalize(), "type": "text"},
+                {"label": "Soil Nitrogen (N)", "value": N, "type": "scalar", "units": "ppm"},
+                {"label": "Soil Phosphorus (P)", "value": P, "type": "scalar", "units": "ppm"},
+                {"label": "Soil Potassium (K)", "value": K, "type": "scalar", "units": "ppm"},
+                {"label": "Soil pH", "value": ph, "type": "scalar", "units": "pH"},
+                {"label": "Alternative Crops", "value": recommendations, "type": "list"}
+            ]
+        }
     except Exception as e:
         return {"success": False, "error": str(e)}
 
