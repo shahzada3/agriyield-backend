@@ -1,8 +1,9 @@
 fastapi
-uvicorn[standard]
 numpy
 pandas
 matplotlib
 seaborn
 scikit-learn
-joblib
+joblibfastapi==0.121.1
+uvicorn[standard]==0.38.0
+python-multipart
